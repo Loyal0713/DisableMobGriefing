@@ -3,45 +3,84 @@ package org.loyal0713.disablemobgriefing;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.file.FileConfiguration;
 
-public class CommandManager implements CommandExecutor {
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class CommandManager implements CommandExecutor, TabCompleter {
+
+    private final DisableMobGriefing plugin;
+
+    public CommandManager(DisableMobGriefing plugin) {
+        this.plugin = plugin;
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        boolean success = false;
-        if(!sender.isOp() && DisableMobGriefing.config.getBoolean("require_op")) {
+        FileConfiguration config = plugin.getConfig();
+
+        if (!sender.isOp() && config.getBoolean("require_op")) {
             sender.sendMessage("You must be an op to use this command.");
-            return success;
+            return true;
         }
 
-        if(command.getLabel().equalsIgnoreCase("mobgriefing")) {
-            if(args.length == 0) {
-                sender.sendMessage("Usage: /mobgriefing <minecraft:name> <true/false>");
-                sender.sendMessage("Example: /mobgriefing creeper false");
-                sender.sendMessage("Example: /mobgriefing creeper");
-                success = true;
-            }
-
-            String entityName = args[0];
-            boolean isInConfig = DisableMobGriefing.config.contains(entityName + "_griefing");
-
-            if(!isInConfig) {
-                sender.sendMessage(entityName + " is not a valid entity.");
-                return success;
-            }
-
-            if(args.length == 1) {
-                boolean allowedToGrief = DisableMobGriefing.config.getBoolean(entityName + "_griefing");
-                sender.sendMessage(entityName + " griefing is " + (allowedToGrief ? "enabled" : "disabled"));
-                success = true;
-            }
-
-            if(args.length == 2) {
-                boolean allowedToGrief = Boolean.parseBoolean(args[1]);
-                DisableMobGriefing.config.set(entityName + "_griefing", allowedToGrief);
-                DisableMobGriefing.config.options().copyDefaults(true);
-                success = true;
-            }
+        if (args.length == 0) {
+            sender.sendMessage("Usage: /mobgriefing <mob> <true/false>");
+            sender.sendMessage("Example: /mobgriefing creeper false");
+            sender.sendMessage("Example: /mobgriefing creeper");
+            return true;
         }
-        return success;
+
+        String entityName = args[0].toLowerCase();
+
+        if (entityName.equals("reload")) {
+            plugin.reloadConfig();
+            plugin.config = plugin.getConfig();
+            sender.sendMessage("DisableMobGriefing config reloaded.");
+            return true;
+        }
+
+        if (!config.contains(entityName + "_griefing")) {
+            sender.sendMessage(entityName + " is not a valid entity.");
+            return true;
+        }
+
+        if (args.length == 1) {
+            boolean allowedToGrief = config.getBoolean(entityName + "_griefing");
+            sender.sendMessage(entityName + " griefing is " + (allowedToGrief ? "enabled" : "disabled"));
+            return true;
+        }
+
+        boolean allowedToGrief = Boolean.parseBoolean(args[1]);
+        config.set(entityName + "_griefing", allowedToGrief);
+        plugin.saveConfig();
+        sender.sendMessage(entityName + " griefing is now " + (allowedToGrief ? "enabled" : "disabled"));
+        return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+        FileConfiguration config = plugin.getConfig();
+
+        if (args.length == 1) {
+            String partial = args[0].toLowerCase();
+            List<String> completions = config.getKeys(false).stream()
+                    .filter(key -> key.endsWith("_griefing"))
+                    .map(key -> key.replace("_griefing", ""))
+                    .filter(name -> name.startsWith(partial))
+                    .collect(Collectors.toList());
+            if ("reload".startsWith(partial)) completions.add("reload");
+            return completions;
+        }
+
+        if (args.length == 2) {
+            return Arrays.asList("true", "false");
+        }
+
+        return Collections.emptyList();
     }
 }

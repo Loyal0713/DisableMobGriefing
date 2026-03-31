@@ -11,7 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class DisableMobGriefing extends JavaPlugin implements Listener {
 
-    static FileConfiguration config = null;
+    FileConfiguration config = null;
 
     @Override
     public void onEnable() {
@@ -20,21 +20,29 @@ public final class DisableMobGriefing extends JavaPlugin implements Listener {
         config.options().copyDefaults(false);
         config.addDefault("require_op", true);
         config.addDefault("verbose", false);
-        config.addDefault("creeper_griefing", true);
-        config.addDefault("ender_crystal_griefing", true);
-        config.addDefault("ender_dragon_griefing", true);
-        config.addDefault("enderman_griefing", true);
-        config.addDefault("falling_block_griefing", true);
-        config.addDefault("fireball_griefing", true);
-        config.addDefault("player_griefing", true);
-        config.addDefault("rabbit_griefing", true);
-        config.addDefault("sheep_griefing", true);
-        config.addDefault("frog_griefing", true);
-        config.addDefault("turtle_griefing", true);
-        config.addDefault("silverfish_griefing", true);
-        config.addDefault("villager_griefing", true);
-        config.addDefault("wither_griefing", true);
-        config.addDefault("wither_skull_griefing", true);
+        config.addDefault("bee_griefing", false);
+        config.addDefault("creeper_griefing", false);
+        config.addDefault("explosion_player_damage", false);
+        config.addDefault("minecart_tnt_griefing", false);
+        config.addDefault("primed_tnt_griefing", false);
+        config.addDefault("ender_crystal_griefing", false);
+        config.addDefault("ender_dragon_griefing", false);
+        config.addDefault("enderman_griefing", false);
+        config.addDefault("falling_block_griefing", false);
+        config.addDefault("fireball_griefing", false);
+        config.addDefault("player_griefing", false);
+        config.addDefault("rabbit_griefing", false);
+        config.addDefault("ravager_griefing", false);
+        config.addDefault("sheep_griefing", false);
+        config.addDefault("snow_golem_griefing", false);
+        config.addDefault("frog_griefing", false);
+        config.addDefault("turtle_griefing", false);
+        config.addDefault("silverfish_griefing", false);
+        config.addDefault("villager_griefing", false);
+        config.addDefault("wither_griefing", false);
+        config.addDefault("wither_skull_griefing", false);
+        config.addDefault("zombie_griefing", false);
+        config.addDefault("zombie_villager_griefing", false);
         config.options().copyDefaults(true);
         saveConfig();
 
@@ -42,7 +50,9 @@ public final class DisableMobGriefing extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
 
         // register command
-        this.getCommand("mobgriefing").setExecutor(new CommandManager());
+        CommandManager commandManager = new CommandManager(this);
+        getCommand("mobgriefing").setExecutor(commandManager);
+        getCommand("mobgriefing").setTabCompleter(commandManager);
     }
 
     /*
@@ -52,9 +62,8 @@ public final class DisableMobGriefing extends JavaPlugin implements Listener {
     public void onEntityChangeBlock(EntityChangeBlockEvent event) {
         EntityType entityType = event.getEntityType();
         boolean allowedToGrief = config.getBoolean(entityType.toString().toLowerCase() + "_griefing");
-        boolean isVerbose = config.getBoolean("verbose");
         if (!allowedToGrief) {
-            if (isVerbose) {
+            if (config.getBoolean("verbose")) {
                 getLogger().info(entityType + " griefing is disabled.");
             }
             event.setCancelled(true);
@@ -68,18 +77,20 @@ public final class DisableMobGriefing extends JavaPlugin implements Listener {
     public void onEntityExplode(EntityExplodeEvent event) {
         EntityType entityType = event.getEntityType();
         boolean allowedToGrief = config.getBoolean(entityType.toString().toLowerCase() + "_griefing");
-        boolean isVerbose = config.getBoolean("verbose");
         if (!allowedToGrief) {
-            if (isVerbose) {
+            if (config.getBoolean("verbose")) {
                 getLogger().info(entityType + " griefing is disabled.");
             }
-            event.setCancelled(true);
+            if (config.getBoolean("explosion_player_damage")) {
+                event.blockList().clear();
+            } else {
+                event.setCancelled(true);
+            }
         }
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
         saveConfig();
     }
 }
