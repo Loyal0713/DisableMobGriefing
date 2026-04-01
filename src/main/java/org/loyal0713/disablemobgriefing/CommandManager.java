@@ -23,11 +23,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         FileConfiguration config = plugin.getConfig();
 
-        if (!sender.isOp() && config.getBoolean("require_op")) {
-            sender.sendMessage("You must be an op to use this command.");
-            return true;
-        }
-
+        // no args, show usage
         if (args.length == 0) {
             sender.sendMessage("Usage: /mobgriefing <mob> <true/false>");
             sender.sendMessage("Example: /mobgriefing creeper false");
@@ -35,30 +31,41 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        String entityName = args[0].toLowerCase();
+        String argument = args[0].toLowerCase();
 
-        if (entityName.equals("reload")) {
+        // reload command
+        if (argument.equals("reload")) {
             plugin.reloadConfig();
             plugin.config = plugin.getConfig();
             sender.sendMessage("DisableMobGriefing config reloaded.");
             return true;
         }
 
-        if (!config.contains(entityName + "_griefing")) {
-            sender.sendMessage(entityName + " is not a valid entity.");
+        // normalize argument to key — direct keys first, then mob griefing keys
+        String configKey;
+        if (config.contains(argument)) {
+            configKey = argument;
+        } else {
+            configKey = argument + "_griefing";
+        }
+
+        if (!config.contains(configKey)) {
+            sender.sendMessage(argument + " is not a valid key.");
             return true;
         }
 
+        // no value provided, show current value of key
         if (args.length == 1) {
-            boolean allowedToGrief = config.getBoolean(entityName + "_griefing");
-            sender.sendMessage(entityName + " griefing is " + (allowedToGrief ? "enabled" : "disabled"));
+            boolean allowedToGrief = config.getBoolean(configKey);
+            sender.sendMessage(configKey + " is " + (allowedToGrief ? "enabled" : "disabled"));
             return true;
         }
 
+        // set value of key
         boolean allowedToGrief = Boolean.parseBoolean(args[1]);
-        config.set(entityName + "_griefing", allowedToGrief);
+        config.set(configKey, allowedToGrief);
         plugin.saveConfig();
-        sender.sendMessage(entityName + " griefing is now " + (allowedToGrief ? "enabled" : "disabled"));
+        sender.sendMessage(configKey + " is now " + (allowedToGrief ? "enabled" : "disabled"));
         return true;
     }
 
@@ -71,9 +78,17 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             List<String> completions = config.getKeys(false).stream()
                     .filter(key -> key.endsWith("_griefing"))
                     .map(key -> key.replace("_griefing", ""))
+                    .collect(Collectors.toList());
+            // Add direct boolean config keys
+            for (String key : new String[]{"verbose", "explosions_damage_players", "reload"}) {
+                if (key.startsWith(partial)) {
+                    completions.add(key);
+                }
+            }
+            // Filter completions by partial
+            completions = completions.stream()
                     .filter(name -> name.startsWith(partial))
                     .collect(Collectors.toList());
-            if ("reload".startsWith(partial)) completions.add("reload");
             return completions;
         }
 
