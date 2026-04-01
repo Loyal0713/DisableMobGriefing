@@ -1,4 +1,4 @@
-package org.loyal0713.disablemobgriefing;
+package com.loyal0713.disablemobgriefing;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;

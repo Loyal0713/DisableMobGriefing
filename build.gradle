@@ -3,8 +3,8 @@ plugins {
     id 'xyz.jpenilla.run-paper' version '2.3.1'
 }
 
-group = 'org.loyal0713'
-version = '1.1.1'
+group = 'com.loyal0713'
+version = '1.1.2'
 
 repositories {
     maven {

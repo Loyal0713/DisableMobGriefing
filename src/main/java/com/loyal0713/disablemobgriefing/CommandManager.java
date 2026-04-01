@@ -1,4 +1,4 @@
-package org.loyal0713.disablemobgriefing;
+package com.loyal0713.disablemobgriefing;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
